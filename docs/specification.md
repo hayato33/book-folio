@@ -2,7 +2,7 @@
 
 ## 🧩 概要
 
-CoverLog は、「読んだ書籍を記録し、Amazon から表紙画像を自動取得して可視化する」個人用 Web アプリ。
+BookFolio は、「読んだ書籍を記録し、Amazon から表紙画像を自動取得して可視化する」個人用 Web アプリ。
 技術学習（スクレイピング × フルスタック構成）を目的とした MVP（最小実装版）です。
 
 ## 🎯 目的
@@ -36,8 +36,8 @@ CoverLog は、「読んだ書籍を記録し、Amazon から表紙画像を自�
 
 ## 📂 ディレクトリ構成（予定）
 
-```
-coverlog/
+```plaintext
+bookfolio/
 ├── app/
 │   ├── layout.tsx
 │   ├── page.tsx                  // メイン画面（書籍登録フォーム＋一覧）
@@ -105,13 +105,13 @@ Amazon から表紙を取得
 | -------- | ----------------------------------- |
 | POST     | タイトルを受け取り、表紙 URL を返す |
 
-**Request**
+### Request
 
 ```json
 { "title": "ハリーポッター" }
 ```
 
-**Response**
+### Response
 
 ```json
 { "coverUrl": "https://images-na.ssl-images-amazon.com/xxx.jpg" }
