@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "test:puppeteer": "tsx scripts/testPuppeteer.ts",
+    "setup:puppeteer": "npx puppeteer browsers install chrome",
     "preinstall": "npx only-allow pnpm",
-    "postinstall": "npx puppeteer browsers install chrome",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
