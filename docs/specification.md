@@ -24,44 +24,71 @@ BookFolio は、「読んだ書籍を記録し、Amazon から表紙画像を自
 | デプロイ       | Vercel（Node.js ランタイム）        | サーバーレス運用                 |
 | パッケージ管理 | pnpm                                | 高速ビルド＆依存関係管理         |
 
+## 📄 ページ構成
+
+| ページ      | パス               | 内容                                 |
+| ----------- | ------------------ | ------------------------------------ |
+| 📚 書籍一覧 | `/`                | 登録済み書籍をカード形式で表示・管理 |
+| ➕ 書籍追加 | `/books/add`       | 新規書籍の登録フォーム               |
+| ✏️ 書籍編集 | `/books/[id]/edit` | 既存書籍の情報編集フォーム           |
+
 ## 🧱 機能一覧（MVP）
 
-| 機能                | 内容                                            |
-| ------------------- | ----------------------------------------------- |
-| 📥 書籍登録フォーム | 書籍タイトルを入力し、Amazon から表紙を自動取得 |
-| 🖼️ 表紙プレビュー   | スクレイピング結果を即座に表示                  |
-| 💾 保存機能         | 書籍タイトル＋表紙 URL を DB に保存             |
-| 📚 一覧表示         | 登録済みの書籍をカード形式で表示                |
-| 🗑️ 削除機能         | 登録済み書籍の削除（任意）                      |
+| 機能                | 内容                                         |
+| ------------------- | -------------------------------------------- |
+| 📚 書籍一覧表示     | 登録済み書籍をステータス別にカード形式で表示 |
+| ➕ 書籍追加フォーム | 書籍情報を入力し、Amazon から表紙を自動取得  |
+| ✏️ 書籍編集フォーム | 既存書籍の情報（メモ、ステータス等）を編集   |
+| 🖼️ 表紙プレビュー   | スクレイピング結果を即座に表示               |
+| 💾 保存機能         | 書籍情報を DB に保存                         |
+| 🗑️ 削除機能         | 登録済み書籍の削除                           |
+| 📊 ステータス管理   | 未完了・進行中・完了の読書ステータス管理     |
 
-## 📂 ディレクトリ構成（予定）
+## 📂 ディレクトリ構成
 
 ```plaintext
-bookfolio/
+book-folio/
 ├── app/
-│   ├── layout.tsx
-│   ├── page.tsx                  // メイン画面（書籍登録フォーム＋一覧）
+│   ├── layout.tsx                // 全体レイアウト
+│   ├── page.tsx                  // 書籍一覧ページ（メイン画面）
+│   ├── globals.css               // グローバルスタイル
 │   ├── books/
-│   │   └── page.tsx              // 書籍一覧ページ（後で分離予定）
+│   │   ├── add/
+│   │   │   └── page.tsx          // 書籍追加ページ
+│   │   └── [id]/
+│   │       └── edit/
+│   │           └── page.tsx      // 書籍編集ページ
 │   └── api/
-│       ├── fetch-cover/route.ts  // PuppeteerでAmazonから表紙取得
-│       └── books/route.ts        // DB操作（GET/POST）
+│       ├── fetch-cover/
+│       │   └── route.ts          // PuppeteerでAmazonから表紙取得
+│       └── books/
+│           └── route.ts          // DB操作（GET/POST/PUT/DELETE）
+│
+├── actions/
+│   └── booksAction.ts            // Server Actions（書籍操作）
+│
+├── components/
+│   ├── ui/                       // shadcn/uiコンポーネント
+│   ├── BookCard.tsx              // 書籍カードコンポーネント
+│   ├── BookForm.tsx              // 書籍フォームコンポーネント
+│   └── StatusBadge.tsx           // ステータス表示バッジ
 │
 ├── db/
 │   ├── schema.ts                 // Drizzleスキーマ定義
-│   ├── index.ts                  // DBクライアント
-│   └── drizzle.config.ts         // 設定ファイル
+│   └── drizzle.ts                // DBクライアント設定
 │
-├── components/
-│   ├── ui/                       // shadcn/uiの生成物
-│   └── BookCard.tsx              // 一覧表示用カードコンポーネント
+├── migrations/                   // DBマイグレーションファイル
 │
-├── styles/
-│   └── globals.css
+├── scripts/
+│   └── testPuppeteer.ts          // Puppeteer動作検証スクリプト
 │
-├── .env
-├── drizzle.config.ts
+├── docs/
+│   └── specification.md          // 仕様書
+│
+├── .env                          // 環境変数
+├── drizzle.config.ts             // Drizzle設定
 ├── package.json
+├── tsconfig.json
 └── README.md
 ```
 
@@ -69,12 +96,16 @@ bookfolio/
 
 ### books テーブル
 
-| カラム名   | 型        | 内容         |
-| ---------- | --------- | ------------ |
-| id         | serial    | 主キー       |
-| title      | text      | 書籍タイトル |
-| cover_url  | text      | 表紙画像 URL |
-| created_at | timestamp | 登録日時     |
+| カラム名     | 型        | 内容                                            |
+| ------------ | --------- | ----------------------------------------------- |
+| id           | serial    | 主キー                                          |
+| title        | text      | 書籍タイトル（書籍名）                          |
+| memo         | text      | ひとことメモ                                    |
+| cover_url    | text      | 表紙画像 URL                                    |
+| status       | text      | ステータス（'pending', 'reading', 'completed'） |
+| completed_at | timestamp | 読了日                                          |
+| created_at   | timestamp | 登録日時                                        |
+| updated_at   | timestamp | 更新日時                                        |
 
 ```typescript
 // db/schema.ts
@@ -83,9 +114,27 @@ import { pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core';
 export const books = pgTable('books', {
   id: serial('id').primaryKey(),
   title: text('title').notNull(),
+  memo: text('memo'),
   coverUrl: text('cover_url'),
+  status: text('status', {
+    enum: ['pending', 'reading', 'completed'],
+  })
+    .default('pending')
+    .notNull(),
+  completedAt: timestamp('completed_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
+
+// ステータスの型定義
+export type BookStatus = 'pending' | 'reading' | 'completed';
+
+// ステータス表示用のラベル
+export const statusLabels: Record<BookStatus, string> = {
+  pending: '未完了',
+  reading: '進行中',
+  completed: '完了',
+};
 ```
 
 ## 🔍 スクレイピング仕様（Puppeteer）
@@ -119,19 +168,73 @@ Amazon から表紙を取得
 
 ### 2️⃣ /api/books
 
-| メソッド | 用途                   |
-| -------- | ---------------------- |
-| GET      | 登録済み書籍の一覧取得 |
-| POST     | 新規書籍の登録         |
-| DELETE   | 書籍削除（任意）       |
+| メソッド | 用途                   | 説明                                     |
+| -------- | ---------------------- | ---------------------------------------- |
+| GET      | 登録済み書籍の一覧取得 | ステータス別フィルタリング対応           |
+| POST     | 新規書籍の登録         | タイトル、メモ、表紙 URL、ステータス保存 |
+| PUT      | 書籍情報の更新         | メモ、ステータス、読了日の更新           |
+| DELETE   | 書籍削除               | 指定 ID の書籍を削除                     |
+
+#### GET /api/books レスポンス例
+
+```json
+{
+  "books": [
+    {
+      "id": 1,
+      "title": "リーダブルコード",
+      "memo": "とても参考になった",
+      "coverUrl": "https://images-amazon.com/xxx.jpg",
+      "status": "completed",
+      "completedAt": "2024-01-15T00:00:00Z",
+      "createdAt": "2024-01-01T00:00:00Z",
+      "updatedAt": "2024-01-15T00:00:00Z"
+    }
+  ]
+}
+```
+
+#### POST /api/books リクエスト例
+
+```json
+{
+  "title": "Clean Code",
+  "memo": "次に読みたい本",
+  "coverUrl": "https://images-amazon.com/yyy.jpg",
+  "status": "pending"
+}
+```
 
 ## 💅 UI 設計（shadcn/ui）
 
-| ページ | コンポーネント構成                                 |
-| ------ | -------------------------------------------------- |
-| /      | Input + Button + Card                              |
-| /books | BookCard のグリッド表示                            |
-| 全体   | Tailwind でレイアウト、max-w-xl mx-auto で中央寄せ |
+| ページ                    | コンポーネント構成                                        |
+| ------------------------- | --------------------------------------------------------- |
+| `/` (書籍一覧)            | Header + StatusFilter + BookCard Grid + FloatingAddButton |
+| `/books/add` (追加)       | BookForm + CoverPreview + SubmitButton                    |
+| `/books/[id]/edit` (編集) | BookForm (編集モード) + StatusSelect + DatePicker         |
+
+### コンポーネント詳細
+
+#### BookCard
+
+- 表紙画像 + タイトル + メモ（一部）+ ステータスバッジ
+- 編集・削除ボタン
+
+#### BookForm
+
+- タイトル入力 + メモ入力 + 表紙プレビュー
+- ステータス選択 + 読了日選択（完了時のみ）
+
+#### StatusBadge
+
+- ステータス別の色分け表示
+- 未完了: グレー、進行中: ブルー、完了: グリーン
+
+#### レイアウト
+
+- 全体: `max-w-6xl mx-auto` で中央寄せ
+- グリッド: `grid-cols-1 md:grid-cols-2 lg:grid-cols-3` でレスポンシブ
+- カード: `hover:shadow-lg transition-shadow` でインタラクション
 
 ## 🚀 開発ステップ概要
 
