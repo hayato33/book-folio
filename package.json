@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "test:puppeteer": "tsx scripts/testPuppeteer.ts",
     "preinstall": "npx only-allow pnpm",
+    "postinstall": "npx puppeteer browsers install chrome",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -15,7 +17,6 @@
     "drizzle-orm": "^0.44.6",
     "next": "16.0.0",
     "puppeteer": "^24.26.1",
-    "puppeteer-core": "^24.26.1",
     "react": "19.2.0",
     "react-dom": "19.2.0"
   },
