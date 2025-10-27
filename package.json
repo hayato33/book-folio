@@ -30,11 +30,15 @@
     "eslint-config-next": "16.0.0",
     "tailwindcss": "^4",
     "tsx": "^4.20.6",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.0.3"
   },
   "engines": {
     "pnpm": ">=8.0.0",
     "npm": "please-use-pnpm",
     "yarn": "please-use-pnpm"
+  },
+  "volta": {
+    "node": "25.0.0"
   }
 }
