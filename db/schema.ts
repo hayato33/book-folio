@@ -10,6 +10,9 @@ export const books = pgTable('books', {
   })
     .default('pending')
     .notNull(),
+  readingStyle: text('reading_style', {
+    enum: ['careful', 'quick', 'skim', 'reference'],
+  }),
   completedAt: timestamp('completed_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
