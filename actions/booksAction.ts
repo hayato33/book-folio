@@ -2,7 +2,7 @@
 
 import { db } from '@/db/drizzle';
 import { books } from '@/db/schema';
-import { BookStatus } from '@/types/book';
+import { BookStatus, ReadingStyle } from '@/types/book';
 import { eq } from 'drizzle-orm';
 
 // books一覧取得
@@ -28,7 +28,7 @@ export const getBookById = async (id: number) => {
 };
 
 // book作成
-export const postBook = async (title: string, coverUrl?: string, memo?: string) => {
+export const postBook = async (title: string, coverUrl?: string, memo?: string, readingStyle?: ReadingStyle | null) => {
   try {
     const result = await db
       .insert(books)
@@ -36,6 +36,7 @@ export const postBook = async (title: string, coverUrl?: string, memo?: string) 
         title,
         coverUrl: coverUrl || null,
         memo: memo || null,
+        readingStyle: readingStyle || null,
       })
       .returning({ id: books.id });
 
@@ -47,7 +48,7 @@ export const postBook = async (title: string, coverUrl?: string, memo?: string) 
 };
 
 // book編集
-export const updateBook = async (id: number, title: string, coverUrl: string | null, memo: string | null, status: BookStatus) => {
+export const updateBook = async (id: number, title: string, coverUrl: string | null, memo: string | null, status: BookStatus, readingStyle?: ReadingStyle | null) => {
   try {
     // 現在の書籍データを取得
     const currentBook = await getBookById(id);
@@ -72,11 +73,17 @@ export const updateBook = async (id: number, title: string, coverUrl: string | n
       coverUrl: coverUrl || null,
       memo: memo || null,
       status,
+      readingStyle: readingStyle !== undefined ? readingStyle : currentBook.readingStyle,
       completedAt,
     };
 
     await db.update(books).set(updateData).where(eq(books.id, id));
   } catch (error) {
+    // 「書籍が見つかりません」エラーはそのまま再スロー
+    if (error instanceof Error && error.message === '書籍が見つかりません') {
+      throw error;
+    }
+    // その他のエラーはログに詳細を記録してから汎用的なエラーをスロー
     console.error('書籍情報の更新に失敗しました:', error);
     throw new Error('書籍情報の更新に失敗しました');
   }
