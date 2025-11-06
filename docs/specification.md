@@ -34,15 +34,16 @@ BookFolio は、「読んだ書籍を記録し、Amazon から表紙画像を自
 
 ## 🧱 機能一覧（MVP）
 
-| 機能                | 内容                                         |
-| ------------------- | -------------------------------------------- |
-| 📚 書籍一覧表示     | 登録済み書籍をステータス別にカード形式で表示 |
-| ➕ 書籍追加フォーム | 書籍情報を入力し、Amazon から表紙を自動取得  |
-| ✏️ 書籍編集フォーム | 既存書籍の情報（メモ、ステータス等）を編集   |
-| 🖼️ 表紙プレビュー   | スクレイピング結果を即座に表示               |
-| 💾 保存機能         | 書籍情報を DB に保存                         |
-| 🗑️ 削除機能         | 登録済み書籍の削除                           |
-| 📊 ステータス管理   | 未完了・進行中・完了の読書ステータス管理     |
+| 機能                | 内容                                             |
+| ------------------- | ------------------------------------------------ |
+| 📚 書籍一覧表示     | 登録済み書籍をステータス別にカード形式で表示     |
+| ➕ 書籍追加フォーム | 書籍情報を入力し、Amazon から表紙を自動取得      |
+| ✏️ 書籍編集フォーム | 既存書籍の情報（メモ、ステータス等）を編集       |
+| 🖼️ 表紙プレビュー   | スクレイピング結果を即座に表示                   |
+| 💾 保存機能         | 書籍情報を DB に保存                             |
+| 🗑️ 削除機能         | 登録済み書籍の削除                               |
+| 📊 ステータス管理   | 未完了・進行中・完了の読書ステータス管理         |
+| 🏷️ 読書スタイル管理 | じっくり読み・さらっと読みなどの読書温度感を管理 |
 
 ## 📂 ディレクトリ構成
 
@@ -96,16 +97,16 @@ book-folio/
 
 ### books テーブル
 
-| カラム名     | 型        | 内容                                            |
-| ------------ | --------- | ----------------------------------------------- |
-| id           | serial    | 主キー                                          |
-| title        | text      | 書籍タイトル（書籍名）                          |
-| memo         | text      | ひとことメモ                                    |
-| cover_url    | text      | 表紙画像 URL                                    |
-| status       | text      | ステータス（'pending', 'reading', 'completed'） |
-| completed_at | timestamp | 読了日                                          |
-| created_at   | timestamp | 登録日時                                        |
-| updated_at   | timestamp | 更新日時                                        |
+| カラム名      | 型        | 内容                                                    |
+| ------------- | --------- | ------------------------------------------------------- |
+| id            | serial    | 主キー                                                  |
+| title         | text      | 書籍タイトル（書籍名）                                  |
+| memo          | text      | ひとことメモ                                            |
+| cover_url     | text      | 表紙画像 URL                                            |
+| status        | text      | ステータス（'pending', 'reading', 'completed'）         |
+| reading_style | text      | 読書スタイル（'careful', 'quick', 'skim', 'reference'） |
+| completed_at  | timestamp | 読了日                                                  |
+| created_at    | timestamp | 登録日時                                                |
 
 ```typescript
 // db/schema.ts
@@ -121,9 +122,11 @@ export const books = pgTable('books', {
   })
     .default('pending')
     .notNull(),
+  readingStyle: text('reading_style', {
+    enum: ['careful', 'quick', 'skim', 'reference'],
+  }),
   completedAt: timestamp('completed_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
 // ステータスの型定義
@@ -134,6 +137,17 @@ export const statusLabels: Record<BookStatus, string> = {
   pending: '未完了',
   reading: '進行中',
   completed: '完了',
+};
+
+// 読書スタイルの型定義
+export type ReadingStyle = 'careful' | 'quick' | 'skim' | 'reference';
+
+// 読書スタイル表示用のラベル
+export const readingStyleLabels: Record<ReadingStyle, string> = {
+  careful: 'じっくり読み',
+  quick: 'さらっと読み',
+  skim: '流し読み',
+  reference: '参照用',
 };
 ```
 
@@ -186,6 +200,7 @@ Amazon から表紙を取得
       "memo": "とても参考になった",
       "coverUrl": "https://images-amazon.com/xxx.jpg",
       "status": "completed",
+      "readingStyle": "careful",
       "completedAt": "2024-01-15T00:00:00Z",
       "createdAt": "2024-01-01T00:00:00Z",
       "updatedAt": "2024-01-15T00:00:00Z"
@@ -201,7 +216,8 @@ Amazon から表紙を取得
   "title": "Clean Code",
   "memo": "次に読みたい本",
   "coverUrl": "https://images-amazon.com/yyy.jpg",
-  "status": "pending"
+  "status": "pending",
+  "readingStyle": "quick"
 }
 ```
 
@@ -217,18 +233,24 @@ Amazon から表紙を取得
 
 #### BookCard
 
-- 表紙画像 + タイトル + メモ（一部）+ ステータスバッジ
+- 表紙画像 + タイトル + メモ（一部）+ ステータスバッジ + 読書スタイルバッジ
 - 編集・削除ボタン
 
 #### BookForm
 
 - タイトル入力 + メモ入力 + 表紙プレビュー
 - ステータス選択 + 読了日選択（完了時のみ）
+- 読書スタイル選択（オプション）
 
 #### StatusBadge
 
 - ステータス別の色分け表示
 - 未完了: グレー、進行中: ブルー、完了: グリーン
+
+#### ReadingStyleBadge
+
+- 読書スタイル別の色分け表示
+- じっくり読み: オレンジ、さらっと読み: ブルー、流し読み: グリーン、参照用: グレー
 
 #### レイアウト
 
@@ -258,6 +280,7 @@ Amazon から表紙を取得
 ## 🧠 今後の拡張案
 
 - 書籍に感想・要約・タグを追加
+- 読書スタイルの複数選択対応（多対多の関係テーブルへの移行）
 - OpenAI API で自動要約
 - Google Books API 対応（合法 API モード）
 - ダークモード対応（shadcn theme）
